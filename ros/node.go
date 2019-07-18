@@ -92,7 +92,7 @@ func listenRandomPort(address string, trialLimit int) (net.Listener, error) {
 	return nil, fmt.Errorf("listenRandomPort exceeds trial limit.")
 }
 
-func newDefaultNode(name string, args []string) (*defaultNode, error) {
+func newDefaultNodeWithLogger(name string, args []string, logger Logger) (*defaultNode, error) {
 	node := new(defaultNode)
 
 	namespace, nodeName, err := qualifyNodeName(name)
@@ -157,7 +157,9 @@ func newDefaultNode(name string, args []string) (*defaultNode, error) {
 	node.interruptChan = make(chan os.Signal)
 	node.ok = true
 
-	logger := NewDefaultLogger()
+	if logger == nil {
+		logger = NewDefaultLogger()
+	}
 	node.logger = logger
 
 	// Install signal handler
