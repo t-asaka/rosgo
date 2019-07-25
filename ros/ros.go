@@ -40,8 +40,14 @@ type Node interface {
 	NonRosArgs() []string
 }
 
+// NewNode returns a new ros node with the given name and arguments.
 func NewNode(name string, args []string) (Node, error) {
-	return newDefaultNode(name, args)
+	return newDefaultNodeWithLogger(name, args, nil)
+}
+
+// NewNodeWithLogger returns a new ros node with the given name, arguments, and logger.
+func NewNodeWithLogger(name string, args []string, logger Logger) (Node, error) {
+	return newDefaultNodeWithLogger(name, args, logger)
 }
 
 type Publisher interface {

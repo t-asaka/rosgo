@@ -17,3 +17,16 @@ func TestLoadJsonFromString(t *testing.T) {
 		t.Error(i)
 	}
 }
+
+func TestNewNodeWithLogger(t *testing.T) {
+	logger := NewDefaultLogger()
+	node, err := NewNodeWithLogger("mynode", []string{}, logger)
+
+	if err != nil {
+		t.Fatal("New node should be created")
+	}
+
+	if node.Logger() != logger {
+		t.Fatal("Logger should be set from the given argument")
+	}
+}
