@@ -203,11 +203,16 @@ func startRemotePublisherConn(logger Logger,
 			conn.SetDeadline(time.Now().Add(10 * time.Millisecond))
 			if readingSize {
 				//logger.Debug("Reading message size...")
-				err := binary.Read(conn, binary.LittleEndian, &msgSize)
+				// err := binary.Read(conn, binary.LittleEndian, &msgSize)
+				bs := make([]byte, 4)
+				nread, err := io.ReadFull(conn, bs)
 				if err != nil {
 					if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
 						// Timed out
 						//logger.Debug(neterr)
+						if nread > 0 {
+							logger.Errorf("Reading msgSize timed out, and number of read bytes > 0, nread=%d", nread)
+						}
 						continue
 					} else {
 						logger.Error("Failed to read a message size")
@@ -215,6 +220,7 @@ func startRemotePublisherConn(logger Logger,
 						return
 					}
 				}
+				msgSize = binary.LittleEndian.Uint32(bs)
 				logger.Debugf("  %d", msgSize)
 				buffer = make([]byte, int(msgSize))
 				readingSize = false
