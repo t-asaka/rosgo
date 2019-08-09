@@ -107,7 +107,7 @@ func (sub *defaultSubscriber) start(wg *sync.WaitGroup, nodeId string, nodeApiUr
 				m := sub.msgType.NewMessage()
 				reader := bytes.NewReader(msgEvent.bytes)
 				if err := m.Deserialize(reader); err != nil {
-					logger.Error(err)
+					logger.Errorf("Deserialize err: %+v", err)
 				}
 				args := []reflect.Value{reflect.ValueOf(m), reflect.ValueOf(msgEvent.event)}
 				for _, callback := range callbacks {
