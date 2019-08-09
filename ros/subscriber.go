@@ -53,7 +53,7 @@ func (sub *defaultSubscriber) start(wg *sync.WaitGroup, nodeId string, nodeApiUr
 		logger.Debug("defaultSubscriber.start exit")
 	}()
 	for {
-		logger.Debug("Loop")
+		logger.Debug("Loop ==========")
 		select {
 		case list := <-sub.pubListChan:
 			logger.Debug("Receive pubListChan")
@@ -226,11 +226,14 @@ func startRemotePublisherConn(logger Logger,
 				readingSize = false
 			} else {
 				//logger.Debug("Reading message body...")
-				_, err = io.ReadFull(conn, buffer)
+				nread, err := io.ReadFull(conn, buffer)
 				if err != nil {
 					if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
 						// Timed out
 						//logger.Debug(neterr)
+						if nread > 0 {
+							logger.Errorf("Reading message timed out, and number of read bytes > 0, nread=%d", nread)
+						}
 						continue
 					} else {
 						logger.Error("Failed to read a message body")
