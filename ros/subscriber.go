@@ -2,6 +2,7 @@ package ros
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -151,8 +152,11 @@ func startRemotePublisherConn(logger Logger,
 	}()
 
 	conn, err := net.Dial("tcp", pubUri)
+	defer conn.Close()
 	if err != nil {
-		logger.Fatalf("Failed to connect %s!", pubUri)
+		logger.Errorf("Failed to connect %s!", pubUri)
+		disconnectedChan <- pubUri
+		return
 	}
 
 	// 1. Write connection header
@@ -168,6 +172,8 @@ func startRemotePublisherConn(logger Logger,
 	err = writeConnectionHeader(headers, conn)
 	if err != nil {
 		logger.Fatal("Failed to write connection header.")
+		disconnectedChan <- pubUri
+		return
 	}
 
 	// 2. Read reponse header
@@ -175,6 +181,8 @@ func startRemotePublisherConn(logger Logger,
 	resHeaders, err = readConnectionHeader(conn)
 	if err != nil {
 		logger.Fatal("Failed to read reasponse header.")
+		disconnectedChan <- pubUri
+		return
 	}
 	logger.Debug("TCPROS Response Header:")
 	resHeaderMap := make(map[string]string)
@@ -183,7 +191,9 @@ func startRemotePublisherConn(logger Logger,
 		logger.Debugf("  `%s` = `%s`", h.key, h.value)
 	}
 	if resHeaderMap["type"] != msgType || resHeaderMap["md5sum"] != md5sum {
-		logger.Fatalf("Incomatible message type!")
+		logger.Error("Incomatible message type!")
+		disconnectedChan <- pubUri
+		return
 	}
 	logger.Debug("Start receiving messages...")
 	event := MessageEvent{ // Event struct to be sent with each message.
