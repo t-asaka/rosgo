@@ -63,8 +63,12 @@ func (sub *defaultSubscriber) start(wg *sync.WaitGroup, nodeId string, nodeApiUr
 			sub.pubList = list
 
 			for _, pub := range deadPubs {
-				quitChan := sub.connections[pub]
+				quitChan, ok := sub.connections[pub]
+				if !ok {
+					continue
+				}
 				quitChan <- struct{}{}
+				close(quitChan)
 				delete(sub.connections, pub)
 			}
 			for _, pub := range newPubs {
@@ -122,6 +126,8 @@ func (sub *defaultSubscriber) start(wg *sync.WaitGroup, nodeId string, nodeApiUr
 			logger.Debug("Callback job enqueued.")
 		case pubUri := <-sub.disconnectedChan:
 			logger.Debugf("Connection to %s was disconnected.", pubUri)
+			quitChan := sub.connections[pubUri]
+			close(quitChan)
 			delete(sub.connections, pubUri)
 		case <-sub.shutdownChan:
 			// Shutdown subscription goroutine
