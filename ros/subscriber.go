@@ -2,7 +2,6 @@ package ros
 
 import (
 	"bytes"
-	"context"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -126,15 +125,16 @@ func (sub *defaultSubscriber) start(wg *sync.WaitGroup, nodeId string, nodeApiUr
 			logger.Debug("Callback job enqueued.")
 		case pubUri := <-sub.disconnectedChan:
 			logger.Debugf("Connection to %s was disconnected.", pubUri)
-			quitChan := sub.connections[pubUri]
-			close(quitChan)
-			delete(sub.connections, pubUri)
+			if quitChan, ok := sub.connections[pubUri]; ok {
+				close(quitChan)
+				delete(sub.connections, pubUri)
+			}
 		case <-sub.shutdownChan:
 			// Shutdown subscription goroutine
 			logger.Debug("Receive shutdownChan")
-			for _, closeChan := range sub.connections {
-				closeChan <- struct{}{}
-				close(closeChan)
+			for _, quitChan := range sub.connections {
+				quitChan <- struct{}{}
+				close(quitChan)
 			}
 			_, err := callRosApi(masterUri, "unregisterSubscriber", nodeId, sub.topic, nodeApiUri)
 			if err != nil {
@@ -208,47 +208,50 @@ func startRemotePublisherConn(logger Logger,
 	}
 
 	// 3. Start reading messages
-	ctx, cancel := context.WithCancel(context.Background())
+	var quit bool
 	go func() {
 		<-quitChan
-		cancel()
 		// set idle timeout
 		conn.SetDeadline(time.Now().Add(1000 * time.Millisecond))
+		quit = true
 	}()
 
 	var msgSize uint32
 	var buffer []byte
 
 	for {
-		select {
-		case <-ctx.Done():
-			logger.Debug("close tcp client")
+		if quit {
 			return
-		default:
-			//logger.Debug("Reading message size...")
-			if err := binary.Read(conn, binary.LittleEndian, &msgSize); err != nil {
-				if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
-					return
-				}
-				logger.Error("Failed to read a message size. err: %+v", err)
-				disconnectedChan <- pubUri
-				return
-			}
-			logger.Debugf("  %d", msgSize)
-			buffer = make([]byte, int(msgSize))
-			//logger.Debug("Reading message body...")
-			_, err := io.ReadFull(conn, buffer)
-			if err != nil {
-				if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
-					return
-				}
-				logger.Error("Failed to read a message body. err: %+v", err)
-				disconnectedChan <- pubUri
-				return
-			}
-			event.ReceiptTime = time.Now()
-			msgChan <- messageEvent{bytes: buffer, event: event}
 		}
+		//logger.Debug("Reading message size...")
+		if err := binary.Read(conn, binary.LittleEndian, &msgSize); err != nil {
+			if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
+				return
+			}
+			if err == io.EOF {
+				return
+			}
+			logger.Errorf("Failed to read a message size. err: %+v", err)
+			disconnectedChan <- pubUri
+			return
+		}
+		logger.Debugf("  %d", msgSize)
+		buffer = make([]byte, int(msgSize))
+		//logger.Debug("Reading message body...")
+		_, err := io.ReadFull(conn, buffer)
+		if err != nil {
+			if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
+				return
+			}
+			if err == io.EOF {
+				return
+			}
+			logger.Errorf("Failed to read a message body. err: %+v", err)
+			disconnectedChan <- pubUri
+			return
+		}
+		event.ReceiptTime = time.Now()
+		msgChan <- messageEvent{bytes: buffer, event: event}
 	}
 }
 
