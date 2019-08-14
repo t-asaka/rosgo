@@ -192,50 +192,46 @@ func startRemotePublisherConn(logger Logger,
 	}
 
 	// 3. Start reading messages
-	readingSize := true
-	var msgSize uint32 = 0
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		<-quitChan
+		cancel()
+		// set idle timeout
+		conn.SetDeadline(time.Now().Add(1000 * time.Millisecond))
+	}()
+
+	var msgSize uint32
 	var buffer []byte
+
 	for {
 		select {
-		case <-quitChan:
+		case <-ctx.Done():
+			logger.Debug("close tcp client")
 			return
 		default:
-			conn.SetDeadline(time.Now().Add(10 * time.Millisecond))
-			if readingSize {
-				//logger.Debug("Reading message size...")
-				err := binary.Read(conn, binary.LittleEndian, &msgSize)
-				if err != nil {
-					if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
-						// Timed out
-						//logger.Debug(neterr)
-						continue
-					} else {
-						logger.Error("Failed to read a message size")
-						disconnectedChan <- pubUri
-						return
-					}
+			//logger.Debug("Reading message size...")
+			if err := binary.Read(conn, binary.LittleEndian, &msgSize); err != nil {
+				if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
+					return
 				}
-				logger.Debugf("  %d", msgSize)
-				buffer = make([]byte, int(msgSize))
-				readingSize = false
-			} else {
-				//logger.Debug("Reading message body...")
-				_, err = io.ReadFull(conn, buffer)
-				if err != nil {
-					if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
-						// Timed out
-						//logger.Debug(neterr)
-						continue
-					} else {
-						logger.Error("Failed to read a message body")
-						disconnectedChan <- pubUri
-						return
-					}
-				}
-				event.ReceiptTime = time.Now()
-				msgChan <- messageEvent{bytes: buffer, event: event}
-				readingSize = true
+				logger.Error("Failed to read a message size. err: %+v", err)
+				disconnectedChan <- pubUri
+				return
 			}
+			logger.Debugf("  %d", msgSize)
+			buffer = make([]byte, int(msgSize))
+			//logger.Debug("Reading message body...")
+			_, err := io.ReadFull(conn, buffer)
+			if err != nil {
+				if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
+					return
+				}
+				logger.Error("Failed to read a message body. err: %+v", err)
+				disconnectedChan <- pubUri
+				return
+			}
+			event.ReceiptTime = time.Now()
+			msgChan <- messageEvent{bytes: buffer, event: event}
 		}
 	}
 }
