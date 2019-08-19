@@ -212,7 +212,7 @@ func startRemotePublisherConn(logger Logger,
 	go func() {
 		<-quitChan
 		// set idle timeout
-		conn.SetDeadline(time.Now().Add(1000 * time.Millisecond))
+		conn.SetDeadline(time.Now().Add(time.Second))
 		quit = true
 	}()
 
