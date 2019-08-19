@@ -235,7 +235,7 @@ func startRemotePublisherConn(logger Logger,
 			disconnectedChan <- pubUri
 			return
 		}
-		logger.Debugf("  %d", msgSize)
+		logger.Debugf("msgSize=%d", msgSize)
 		buffer = make([]byte, int(msgSize))
 		//logger.Debug("Reading message body...")
 		_, err := io.ReadFull(conn, buffer)
