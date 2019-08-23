@@ -158,12 +158,12 @@ func startRemotePublisherConn(logger Logger,
 	}()
 
 	conn, err := net.Dial("tcp", pubUri)
-	defer conn.Close()
 	if err != nil {
 		logger.Errorf("Failed to connect %s!", pubUri)
 		disconnectedChan <- pubUri
 		return
 	}
+	defer conn.Close()
 
 	// 1. Write connection header
 	var headers []header
