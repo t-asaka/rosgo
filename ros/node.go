@@ -229,26 +229,26 @@ func (node *defaultNode) OK() bool {
 }
 
 func (node *defaultNode) getBusStats(callerId string) (interface{}, error) {
-	return buildRosApiResult(-1, "Not implemented", 0), nil
+	return buildRosApiResult(rosApiStatusCodeError, "Not implemented", 0), nil
 }
 
 func (node *defaultNode) getBusInfo(callerId string) (interface{}, error) {
-	return buildRosApiResult(-1, "Not implemeted", 0), nil
+	return buildRosApiResult(rosApiStatusCodeError, "Not implemeted", 0), nil
 }
 
 func (node *defaultNode) getMasterUri(callerId string) (interface{}, error) {
-	return buildRosApiResult(0, "Success", node.masterUri), nil
+	return buildRosApiResult(rosApiStatusCodeSuccess, "Success", node.masterUri), nil
 }
 
 func (node *defaultNode) shutdown(callerId string, msg string) (interface{}, error) {
 	node.okMutex.Lock()
 	node.ok = false
 	node.okMutex.Unlock()
-	return buildRosApiResult(0, "Success", 0), nil
+	return buildRosApiResult(rosApiStatusCodeSuccess, "Success", 0), nil
 }
 
 func (node *defaultNode) getPid(callerId string) (interface{}, error) {
-	return buildRosApiResult(0, "Success", os.Getpid()), nil
+	return buildRosApiResult(rosApiStatusCodeSuccess, "Success", os.Getpid()), nil
 }
 
 func (node *defaultNode) getSubscriptions(callerId string) (interface{}, error) {
@@ -257,7 +257,7 @@ func (node *defaultNode) getSubscriptions(callerId string) (interface{}, error) 
 		pair := []interface{}{t, s.msgType.Name()}
 		result = append(result, pair)
 	}
-	return buildRosApiResult(0, "Success", result), nil
+	return buildRosApiResult(rosApiStatusCodeSuccess, "Success", result), nil
 }
 
 func (node *defaultNode) getPublications(callerId string) (interface{}, error) {
@@ -266,11 +266,11 @@ func (node *defaultNode) getPublications(callerId string) (interface{}, error) {
 		pair := []interface{}{t, p.msgType.Name()}
 		result = append(result, pair)
 	}
-	return buildRosApiResult(0, "Success", result), nil
+	return buildRosApiResult(rosApiStatusCodeSuccess, "Success", result), nil
 }
 
 func (node *defaultNode) paramUpdate(callerId string, key string, value interface{}) (interface{}, error) {
-	return buildRosApiResult(-1, "Not implemented", 0), nil
+	return buildRosApiResult(rosApiStatusCodeError, "Not implemented", 0), nil
 }
 
 func (node *defaultNode) publisherUpdate(callerId string, topic string, publishers []interface{}) (interface{}, error) {
@@ -279,7 +279,7 @@ func (node *defaultNode) publisherUpdate(callerId string, topic string, publishe
 	var message string
 	if sub, ok := node.subscribers[topic]; !ok {
 		node.logger.Debug("publisherUpdate() called without subscribing topic.")
-		code = 0
+		code = rosApiStatusCodeError
 		message = "No such topic"
 	} else {
 		pubUris := make([]string, len(publishers))
@@ -287,7 +287,7 @@ func (node *defaultNode) publisherUpdate(callerId string, topic string, publishe
 			pubUris[i] = uri.(string)
 		}
 		sub.pubListChan <- pubUris
-		code = 1
+		code = rosApiStatusCodeSuccess
 		message = "Success"
 	}
 	return buildRosApiResult(code, message, 0), nil
@@ -300,7 +300,7 @@ func (node *defaultNode) requestTopic(callerId string, topic string, protocols [
 	var value interface{}
 	if pub, ok := node.publishers[topic]; !ok {
 		node.logger.Debug("requestTopic() called with not publishing topic.")
-		code = 0
+		code = rosApiStatusCodeError
 		message = "No such topic"
 		value = nil
 	} else {
@@ -323,7 +323,7 @@ func (node *defaultNode) requestTopic(callerId string, topic string, protocols [
 			}
 		}
 		node.logger.Debug(selectedProtocol)
-		code = 1
+		code = rosApiStatusCodeSuccess
 		message = "Success"
 		value = selectedProtocol
 	}
