@@ -5,6 +5,16 @@ import (
 	"github.com/akio/rosgo/xmlrpc"
 )
 
+// http://wiki.ros.org/ROS/Master_Slave_APIs
+const (
+	// Error on the part of the caller
+	rosApiStatusCodeError int32 = -1
+	// Method failed to complete correctly
+	rosApiStatusCodeFailure int32 = 0
+	// Method completed successfully
+	rosApiStatusCodeSuccess int32 = 1
+)
+
 func callRosApi(calleeUri string, method string, args ...interface{}) (interface{}, error) {
 	result, err := xmlrpc.Call(calleeUri, method, args...)
 	if err != nil {
