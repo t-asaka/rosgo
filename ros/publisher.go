@@ -246,7 +246,7 @@ func (session *remoteSubscriberSession) start() {
 		logger.Debugf("  `%s` = `%s`", h.key, h.value)
 	}
 	if headerMap["type"] != session.typeName || headerMap["md5sum"] != session.md5sum {
-		panic(errors.New("Incomatible message type!"))
+		panic(errors.New("Incompatible message type!"))
 	}
 	ssp.subName = headerMap["callerid"]
 	if session.connectCallback != nil {

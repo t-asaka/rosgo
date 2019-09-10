@@ -197,7 +197,7 @@ func startRemotePublisherConn(logger Logger,
 		logger.Debugf("  `%s` = `%s`", h.key, h.value)
 	}
 	if resHeaderMap["type"] != msgType || resHeaderMap["md5sum"] != md5sum {
-		logger.Error("Incomatible message type!")
+		logger.Error("Incompatible message type!")
 		disconnectedChan <- pubUri
 		return
 	}
