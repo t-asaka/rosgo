@@ -336,7 +336,7 @@ func (node *defaultNode) NewPublisher(topic string, msgType MessageType) Publish
 }
 
 func (node *defaultNode) NewPublisherWithCallbacks(topic string, msgType MessageType, connectCallback, disconnectCallback func(SingleSubscriberPublisher)) Publisher {
-	name := node.nameResolver.remap(topic)
+	name := node.nameResolver.remap(topic) + msgType.MD5Sum()
 	pub, ok := node.publishers[name]
 	logger := node.logger
 	if !ok {
@@ -356,7 +356,7 @@ func (node *defaultNode) NewPublisherWithCallbacks(topic string, msgType Message
 }
 
 func (node *defaultNode) NewSubscriber(topic string, msgType MessageType, callback interface{}) Subscriber {
-	name := node.nameResolver.remap(topic)
+	name := node.nameResolver.remap(topic) + msgType.MD5Sum()
 	sub, ok := node.subscribers[name]
 	logger := node.logger
 	if !ok {
@@ -405,7 +405,7 @@ func (node *defaultNode) NewServiceClient(service string, srvType ServiceType) S
 }
 
 func (node *defaultNode) NewServiceServer(service string, srvType ServiceType, handler interface{}) ServiceServer {
-	name := node.nameResolver.remap(service)
+	name := node.nameResolver.remap(service) + srvType.MD5Sum()
 	server, ok := node.servers[name]
 	if ok {
 		server.Shutdown()
