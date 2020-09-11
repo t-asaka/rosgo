@@ -336,8 +336,9 @@ func (node *defaultNode) NewPublisher(topic string, msgType MessageType) Publish
 }
 
 func (node *defaultNode) NewPublisherWithCallbacks(topic string, msgType MessageType, connectCallback, disconnectCallback func(SingleSubscriberPublisher)) Publisher {
-	name := node.nameResolver.remap(topic) + msgType.MD5Sum()
-	pub, ok := node.publishers[name]
+	name := node.nameResolver.remap(topic)
+	id := name + msgType.MD5Sum()
+	pub, ok := node.publishers[id]
 	logger := node.logger
 	if !ok {
 		_, err := callRosApi(node.masterUri, "registerPublisher",
@@ -349,15 +350,16 @@ func (node *defaultNode) NewPublisherWithCallbacks(topic string, msgType Message
 		}
 
 		pub = newDefaultPublisher(node, name, msgType, connectCallback, disconnectCallback)
-		node.publishers[name] = pub
+		node.publishers[id] = pub
 		go pub.start(&node.waitGroup)
 	}
 	return pub
 }
 
 func (node *defaultNode) NewSubscriber(topic string, msgType MessageType, callback interface{}) Subscriber {
-	name := node.nameResolver.remap(topic) + msgType.MD5Sum()
-	sub, ok := node.subscribers[name]
+	name := node.nameResolver.remap(topic)
+	id := name + msgType.MD5Sum()
+	sub, ok := node.subscribers[id]
 	logger := node.logger
 	if !ok {
 		node.logger.Debug("Call Master API registerSubscriber")
@@ -385,7 +387,7 @@ func (node *defaultNode) NewSubscriber(topic string, msgType MessageType, callba
 		logger.Debugf("Publisher URI list: ", publishers)
 
 		sub = newDefaultSubscriber(name, msgType, callback)
-		node.subscribers[name] = sub
+		node.subscribers[id] = sub
 
 		logger.Debugf("Start subscriber goroutine for topic '%s'", sub.topic)
 		go sub.start(&node.waitGroup, node.qualifiedName, node.xmlrpcUri, node.masterUri, node.jobChan, logger)
@@ -405,8 +407,9 @@ func (node *defaultNode) NewServiceClient(service string, srvType ServiceType) S
 }
 
 func (node *defaultNode) NewServiceServer(service string, srvType ServiceType, handler interface{}) ServiceServer {
-	name := node.nameResolver.remap(service) + srvType.MD5Sum()
-	server, ok := node.servers[name]
+	name := node.nameResolver.remap(service)
+	id := name + srvType.MD5Sum()
+	server, ok := node.servers[id]
 	if ok {
 		server.Shutdown()
 	}
@@ -414,7 +417,7 @@ func (node *defaultNode) NewServiceServer(service string, srvType ServiceType, h
 	if server == nil {
 		return nil
 	}
-	node.servers[name] = server
+	node.servers[id] = server
 	return server
 }
 
