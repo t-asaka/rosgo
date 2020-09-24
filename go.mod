@@ -1,4 +1,4 @@
-module github.com/seqsense/rosgo
+module github.com/t-asaka/rosgo
 
 go 1.13
 

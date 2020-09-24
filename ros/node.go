@@ -3,7 +3,6 @@ package ros
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/akio/rosgo/xmlrpc"
 	"math/rand"
 	"net"
 	"net/http"
@@ -15,6 +14,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/akio/rosgo/xmlrpc"
 )
 
 const (
@@ -275,6 +276,7 @@ func (node *defaultNode) paramUpdate(callerId string, key string, value interfac
 
 func (node *defaultNode) publisherUpdate(callerId string, topic string, publishers []interface{}) (interface{}, error) {
 	node.logger.Debug("Slave API publisherUpdate() called.")
+	node.logger.Debugf("callerId: %s, topic: %s, publisher: %+v", callerId, topic, publishers)
 	var code int32
 	var message string
 	if sub, ok := node.subscribers[topic]; !ok {
