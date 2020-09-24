@@ -1,6 +1,6 @@
 module github.com/t-asaka/rosgo
 
-go 1.13
+go 1.15
 
 require github.com/akio/rosgo v0.0.0-20181001005218-9bef6ddefa32
 
